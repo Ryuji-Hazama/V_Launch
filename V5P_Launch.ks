@@ -53,40 +53,36 @@ STAGE.
 PRINT "Stage separated.".
 adjustRoll().
 
-WAIT 15.
-PRINT "Throttle down to 80%...".
-SET throttle_level TO gentleThrottleDown(throttle_level, throttle_level - 0.1).
-
-WAIT 18.
-PRINT "Throttle down to 70%...".
-SET throttle_level TO gentleThrottleDown(throttle_level, throttle_level - 0.1).
-
-WAIT 20.
-PRINT "Throttle down to 60%...".
-SET throttle_level TO gentleThrottleDown(throttle_level, throttle_level - 0.1).
-
-WAIT 23.
-PRINT "Throttle down to 50%...".
-SET throttle_level TO gentleThrottleDown(throttle_level, throttle_level - 0.1).
-
-WAIT 3.
-PRINT "Setting heading to prograde.".
-LOCK STEERING TO PROGRADE.
-
-WAIT 4.
-
 SET previous_ap TO SHIP:ORBIT:APOAPSIS.
-SET target_ap TO 80 * 1000.
-UNTIL getCurrentPitch() >= 1 {
-	SET deg TO getCurrentPitch().
-	SET adjust_angle TO getApAdjustAngle(target_ap, previous_ap) / 5.
-	SET deg TO deg + adjust_angle.
-	set previous_ap TO SHIP:ORBIT:APOAPSIS.
-	LOCK STEERING TO HEADING(90, deg, 0).
+SET head_parog TO 0.
+UNTIL previous_ap > 70 * 1000 {
+
+	IF head_parog = 0 AND SHIP:ALTITUDE >= 36 * 1000 {
+		LOCK STEERING TO PROGRADE.
+		SET head_parog TO 1.
+	}
+
+	IF getCurrentTwr(throttle_level) > 2 {
+		SET throttle_level TO gentleThrottleDown(throttle_level, throttle_level - 0.1).
+	}
+
 	WAIT 0.2.
+	SET previous_ap TO SHIP:ORBIT:APOAPSIS.
 }
 
-PRINT "Pitch down complete.".
+SET target_ap TO 80 * 1000.
+
+IF head_parog = 0 {
+	SET previous_ap TO SHIP:ORBIT:APOAPSIS.
+	UNTIL SHIP:ALTITUDE >= 36 * 1000 {
+		SET deg TO getCurrentPitch().
+		SET adjust_angle TO getApAdjustAngle(target_ap, previous_ap) / 5.
+		SET deg TO deg + adjust_angle.
+		set previous_ap TO SHIP:ORBIT:APOAPSIS.
+		LOCK STEERING TO HEADING(90, deg, 0).
+		WAIT 0.2.
+	}
+}
 
 SET throttle_level TO gentleThrottleUp(throttle_level, 0.8).
 
@@ -110,7 +106,7 @@ WAIT 3.
 SET throttle_level TO gentleThrottleUp(throttle_level, 1.0).
 
 SET previous_ap TO SHIP:ORBIT:APOAPSIS.
-FROM { SET t TO 0. } UNTIL t >= 30 STEP { SET t TO t + 0.2. } DO {
+UNTIL SHIP:ORBIT:PERIAPSIS >= -400 * 1000 {
 	SET deg TO getCurrentPitch().
 	SET adjust_angle TO getApAdjustAngle(target_ap, previous_ap).
 	SET deg TO deg + adjust_angle.
@@ -123,7 +119,7 @@ FROM { SET t TO 0. } UNTIL t >= 30 STEP { SET t TO t + 0.2. } DO {
 SET throttle_level TO gentleThrottleDown(throttle_level, 0.5).
 
 SET previous_ap TO SHIP:ORBIT:APOAPSIS.
-FROM { SET t TO 0. } UNTIL t >= 20 STEP { SET t TO t + 0.2. } DO {
+UNTIL SHIP:ORBIT:PERIAPSIS >= -300 * 1000 {
 	SET deg TO getCurrentPitch().
 	SET adjust_angle TO getApAdjustAngle(target_ap, previous_ap).
 	SET deg TO deg + adjust_angle.
@@ -135,7 +131,7 @@ FROM { SET t TO 0. } UNTIL t >= 20 STEP { SET t TO t + 0.2. } DO {
 SET throttle_level TO gentleThrottleDown(throttle_level, 0.3).
 
 SET previous_ap TO SHIP:ORBIT:APOAPSIS.
-UNTIL SHIP:ORBIT:PERIAPSIS >= -100 * 1000 {
+UNTIL SHIP:ORBIT:PERIAPSIS >= -120 * 1000 {
 	SET deg TO getCurrentPitch().
 	SET adjust_angle TO getApAdjustAngle(target_ap, previous_ap).
 	SET deg TO deg + adjust_angle.
@@ -145,6 +141,18 @@ UNTIL SHIP:ORBIT:PERIAPSIS >= -100 * 1000 {
 }
 
 SET throttle_level TO gentleThrottleDown(throttle_level, 0.1).
+
+SET previous_ap TO SHIP:ORBIT:APOAPSIS.
+UNTIL SHIP:ORBIT:PERIAPSIS >= 25 * 1000 {
+	SET deg TO getCurrentPitch().
+	SET adjust_angle TO getApAdjustAngle(target_ap, previous_ap).
+	SET deg TO deg + adjust_angle.
+	set previous_ap TO SHIP:ORBIT:APOAPSIS.
+	LOCK STEERING TO HEADING(90, deg, 0).
+	WAIT 0.2.
+}
+
+SET throttle_level TO gentleThrottleDown(throttle_level, 0.05).
 
 SET previous_ap TO SHIP:ORBIT:APOAPSIS.
 UNTIL SHIP:ORBIT:PERIAPSIS >= 78 * 1000 {
@@ -160,16 +168,19 @@ SET throttle_level TO gentleThrottleDown(throttle_level, 0.0).
 PRINT "Orbit complete.".
 
 adjustRoll().
-WAIT 1400.
+WAIT 10.
+UNLOCK STEERING.
+WAIT 1270.
 
 LOCK STEERING TO RETROGRADE.
+WAIT 3.
 SET throttle_level TO gentleThrottleUp(throttle_level, 0.3).
-WAIT UNTIL SHIP:ORBIT:PERIAPSIS <= 36 * 1000.
+WAIT UNTIL SHIP:ORBIT:PERIAPSIS <= 37 * 1000.
 SET throttle_level TO gentleThrottleDown(throttle_level, 0.0).
 
 WAIT UNTIL SHIP:ALTITUDE <= 71 * 1000.
 PRINT "Separating upper stage...".
-LOCK STEERING TO HEADING(90, 90).
+LOCK STEERING TO HEADING(270, 90).
 WAIT 3.
 STAGE.
 PRINT "Upper stage separated.".
@@ -177,7 +188,7 @@ WAIT 3.
 LOCK STEERING TO RETROGRADE.
 
 PRINT "!! PREPARE FOR REENTRY !!".
-WAIT UNTIL SHIP:ALTITUDE <= 33 * 1000.
+WAIT UNTIL SHIP:ALTITUDE <= 20 * 1000.
 PRINT "Reentry complete.".
 
 PRINT "Finishing program. Goodbye.".
